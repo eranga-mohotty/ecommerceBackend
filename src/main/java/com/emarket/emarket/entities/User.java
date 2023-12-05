@@ -32,6 +32,9 @@ public class User {
     public String getPassword() {
         return password;
     }
+    public String getName() {
+        return name;
+    }
 
     public void setName(String name) {
         this.name = name;

@@ -173,4 +173,14 @@ public class ServiceLayer {
         return "Cart cleared successfully";
     }
 
+    public String getUser(String email, String password) {
+        User user = userRepository.findByEmailAndPassword(email, password);
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(user);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace(); // Print the exception details for debugging
+            return "Error converting User to JSON: " + e.getMessage();
+        }
+    }
 }
