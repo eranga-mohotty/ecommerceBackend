@@ -1,28 +1,26 @@
 package com.emarket.emarket.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "cart_item")
-public class CartItem {
+@Table(name = "order_line")
+public class OrderLine {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "cart_item_id")
+    @Column(name = "order_line_id")
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "cart_id") // Specify the name of the foreign key column
-    @JsonIgnore
-    private Cart cart; // Reference to the parent cart
+    @JoinColumn(name = "order_header_id")
+    private OrderHeader orderHeader;
 
     @OneToOne
     @JoinColumn(name = "product_id")
     private Product product;
 
-    private int quantity;
+    private int item_amount;
 
-    // Constructors, getters, and setters
+    private int quantity;
 
     public Long getId() {
         return id;
@@ -32,12 +30,12 @@ public class CartItem {
         this.id = id;
     }
 
-    public Cart getCart() {
-        return cart;
+    public OrderHeader getOrderHeader() {
+        return orderHeader;
     }
 
-    public void setCart(Cart cart) {
-        this.cart = cart;
+    public void setOrderHeader(OrderHeader orderHeader) {
+        this.orderHeader = orderHeader;
     }
 
     public Product getProduct() {
@@ -46,6 +44,14 @@ public class CartItem {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public int getItem_amount() {
+        return item_amount;
+    }
+
+    public void setItem_amount(int item_amount) {
+        this.item_amount = item_amount;
     }
 
     public int getQuantity() {

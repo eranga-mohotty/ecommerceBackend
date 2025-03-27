@@ -1,21 +1,27 @@
 package com.emarket.emarket.model;
 
-import com.emarket.emarket.entities.Cart;
-import com.emarket.emarket.entities.CartItem;
-import com.emarket.emarket.entities.Product;
-import com.emarket.emarket.repositories.CartRepository;
-import com.emarket.emarket.repositories.ProductRepository;
-import com.emarket.emarket.repositories.UserRepository;
-import com.emarket.emarket.entities.User;
+import ch.qos.logback.core.net.SyslogOutputStream;
+import com.emarket.emarket.entities.*;
+import com.emarket.emarket.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.io.DataInput;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.SubmissionPublisher;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 
 @Service
@@ -26,6 +32,13 @@ public class ServiceLayer {
     private UserRepository userRepository;
     @Autowired
     private CartRepository cartRepository;
+    @Autowired
+    private OrderHeaderRepository orderHeaderRepository;
+    @Autowired
+    private OrderLineRepository orderLineRepository;
+
+    @Value("${env.SQUARE_API_KEY}")
+    private String SQUARE_ACCESS_TOKEN;
 
     public String EmailPasswordMatch(String email, String password){
         Optional<User> result = Optional.ofNullable(userRepository.findByEmailAndPassword(email, password));
@@ -183,4 +196,87 @@ public class ServiceLayer {
             return "Error converting User to JSON: " + e.getMessage();
         }
     }
+
+    public String saveCartToOrder(String email, String password) {
+        String cartString = getCart(email, password);
+        if (Objects.equals(cartString, "Cart not present")){
+            return cartString;
+
+        }
+//        if cart isn't empty
+        // copy items in cart table to order tables (orderHeader and order Line)
+        // clear cart to avoid reentering same cart again and again
+        else{
+            User user = userRepository.findByEmailAndPassword(email, password);
+            Cart cart = cartRepository.findByUser(user).get();
+            OrderHeader orderHeader = new OrderHeader();
+            orderHeader.setUser(user);
+            orderHeader.setPaid(Boolean.FALSE);
+            cart.calculateTotal();
+            orderHeader.setTotal(cart.getTotal());
+            orderHeader.setDateTime(LocalDateTime.now());
+            orderHeaderRepository.save(orderHeader);
+
+            for (CartItem cartItem: cart.getCartItems()){
+                OrderLine orderLine = new OrderLine();
+                orderLine.setOrderHeader(orderHeader);
+                orderLine.setProduct(cartItem.getProduct());
+                orderLine.setItem_amount(cartItem.getProduct().getPrice());
+                orderLine.setQuantity(cartItem.getQuantity());
+                orderLineRepository.save(orderLine);
+
+            }
+            cart.getCartItems().clear();
+            cartRepository.save(cart);
+            return "successfully copied to order header and emptied cart";
+
+
+
+        }
+
+
+    }
+
+    public String handleAttemptCharge(String email, String password, String nonce){
+
+        final String SQUARE_API_URL = "https://connect.squareupsandbox.com/v2/payments";
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + SQUARE_ACCESS_TOKEN);
+
+        // Create the request body
+        String idempotencyKey = UUID.randomUUID().toString(); //replace with orderHeaderID
+        String requestJson = String.format("{\"idempotency_key\": \"%s\", \"source_id\": \"%s\", \"amount_money\": {\"amount\": %s, \"currency\": \"AUD\"}}",
+                idempotencyKey, nonce, 1); //Replace price with actual price from order Header
+        HttpEntity<String> requestEntity = new HttpEntity<>(requestJson, headers);
+
+        // Make the POST request
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(SQUARE_API_URL, requestEntity, String.class);
+
+
+        System.out.println("RESPONSE BODY = \n\n\n"+responseEntity.getBody());
+
+        // Handle the response
+        if (responseEntity.getStatusCode().is2xxSuccessful()) {
+            // Payment successful, you can process the responseEntity.getBody()
+
+            User user = userRepository.findByEmailAndPassword(email, password);
+            Optional<List<OrderHeader>> orderHeaders = orderHeaderRepository.findByUserOrderByDateTimeDesc(user);
+            OrderHeader orderHeader = orderHeaders.get().get(0);
+            orderHeader.setPaid(true);
+            orderHeaderRepository.save(orderHeader);
+
+            return "Payment was Successful.";
+
+
+        } else {
+            // Payment failed, handle the error
+            return "Payment failed.";
+        }
+
+    }
+
 }

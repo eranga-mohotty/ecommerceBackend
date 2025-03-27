@@ -1,5 +1,6 @@
 package com.emarket.emarket.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 
@@ -23,6 +24,7 @@ public class User {
     private String email;
 
     @Column(name = "password")
+    @JsonIgnore
     private String password;
 
     public String getEmail() {

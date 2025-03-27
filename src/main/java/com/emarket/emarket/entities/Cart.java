@@ -23,6 +23,10 @@ public class Cart {
         return cartItems;
     }
 
+    public Integer getTotal() {
+        return total;
+    }
+
     @Transient
     private Integer total;
 
