@@ -1,8 +1,7 @@
 package com.emarket.emarket.controllers;
 
-import com.emarket.emarket.model.ServiceLayer;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.emarket.emarket.services.AuthService;
+import com.emarket.emarket.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,14 +15,16 @@ import java.util.Objects;
 public class AuthController {
 
     @Autowired
-    private ServiceLayer serviceLayer;
+    private UserService userService;
+    @Autowired
+    AuthService AuthService;
 
     @PostMapping("/login")
     public ResponseEntity<String> findData(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         String password = request.get("password");
 
-        String response = serviceLayer.EmailPasswordMatch(email, password);
+        String response = AuthService.EmailPasswordMatch(email, password);
         HttpStatus httpStatus = HttpStatus.OK;
 
         if (Objects.equals(response, "Incorrect email or password provided")){
@@ -40,7 +41,7 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
-        String response = serviceLayer.registerUser(name, email, password);
+        String response = userService.registerUser(name, email, password);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -49,12 +50,12 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
-        String response = serviceLayer.EmailPasswordMatch(email, password);
+        String response = AuthService.EmailPasswordMatch(email, password);
         if (Objects.equals(response, "Incorrect email or password provided")){
             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
         }
 
-        response = String.valueOf(serviceLayer.getUser(email,password));
+        response = String.valueOf(userService.getUser(email,password));
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

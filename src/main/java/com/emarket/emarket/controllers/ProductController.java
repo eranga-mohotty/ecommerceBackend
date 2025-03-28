@@ -1,14 +1,13 @@
 package com.emarket.emarket.controllers;
 
 import com.emarket.emarket.entities.Product;
-import com.emarket.emarket.model.ServiceLayer;
+import com.emarket.emarket.services.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -17,11 +16,11 @@ import java.util.Optional;
 public class ProductController {
 
     @Autowired
-    private ServiceLayer serviceLayer;
+    private ProductService productService;
 
     @GetMapping("/products")
     public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = serviceLayer.getProducts();
+        List<Product> products = productService.getProducts();
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
@@ -29,7 +28,7 @@ public class ProductController {
 
     @GetMapping("/product/{id}")
     public ResponseEntity<Optional<Product>> getProduct(@PathVariable("id") Long id) {
-        Optional<Product> product = serviceLayer.getProduct(id);
+        Optional<Product> product = productService.getProduct(id);
         if (product.isPresent()){
             return new ResponseEntity<>(product, HttpStatus.OK);
 
