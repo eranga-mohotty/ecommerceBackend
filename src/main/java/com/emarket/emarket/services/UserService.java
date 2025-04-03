@@ -22,13 +22,14 @@ public class UserService {
         return "Registration successful";
     }
 
-    public String getUser(String email, String password) {
+    public String getJsonSerializedUser(String email, String password) {
         User user = userRepository.findByEmailAndPassword(email, password);
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.writeValueAsString(user);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
+
             return "Error converting User to JSON: " + e.getMessage();
         }
     }

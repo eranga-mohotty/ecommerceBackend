@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,14 +23,19 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
-        String response = AuthService.EmailPasswordMatch(email, password);
-        HttpStatus httpStatus = HttpStatus.OK;
+        Boolean isAuthorized = AuthService.EmailPasswordMatch(email, password);
+        HttpStatus httpStatus;
+        String responseBody = "";
 
-        if (Objects.equals(response, "Incorrect email or password provided")){
+        if (isAuthorized){
+            httpStatus = HttpStatus.OK;
+        }
+        else {
             httpStatus = HttpStatus.UNAUTHORIZED;
+            responseBody = "Incorrect email or password provided";
         }
 
-        return new ResponseEntity<>(response, httpStatus);
+        return new ResponseEntity<>(responseBody, httpStatus);
     }
 
 
@@ -50,14 +54,14 @@ public class AuthController {
         String email = request.get("email");
         String password = request.get("password");
 
-        String response = AuthService.EmailPasswordMatch(email, password);
-        if (Objects.equals(response, "Incorrect email or password provided")){
-            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        Boolean isAuthorized = AuthService.EmailPasswordMatch(email, password);
+
+        if (isAuthorized){
+            String jsonSerializedUser = String.valueOf(userService.getJsonSerializedUser(email,password));
+            return new ResponseEntity<>(jsonSerializedUser, HttpStatus.OK);
         }
 
-        response = String.valueOf(userService.getUser(email,password));
-
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return new ResponseEntity<>("Incorrect email or password provided",HttpStatus.UNAUTHORIZED);
     }
 
 
